@@ -1,0 +1,2 @@
+# PushParadox
+AnkiAddon: Sibling Cardistry
