@@ -2,7 +2,7 @@
 # Copyright: (C) 2018 Lovac42
 # Support: https://github.com/lovac42/PushParadox
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
-# Version: 0.0.1
+# Version: 0.0.2
 
 
 from aqt import mw
@@ -18,16 +18,16 @@ def getNewCard(sched, _old):
 
     conf=sched.col.decks.confForDid(card.did)
     siblingIvl=conf.get("siblingStage", 0)
-
-    contraction=mw.col.db.first("""select 
+    if siblingIvl:
+        contraction=mw.col.db.first("""select 
 sum(case when type in (1,2,3) and queue != -1 
 and ivl < ? then 1 else 0 end)
 from cards where nid = ? and id != ?""",
 siblingIvl, card.nid, card.id)[0] or 0
 
-    if contraction:
-        sched.buryCards([card.id])
-        return sched._getNewCard() #next card
+        if contraction:
+            sched.buryCards([card.id])
+            return sched._getNewCard() #next card
     return card
 
 
