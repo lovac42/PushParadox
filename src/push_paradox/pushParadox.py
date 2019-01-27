@@ -2,7 +2,7 @@
 # Copyright: (C) 2018 Lovac42
 # Support: https://github.com/lovac42/PushParadox
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
-# Version: 0.0.2
+# Version: 0.0.3
 
 
 from aqt import mw
@@ -68,7 +68,7 @@ def dconfsetupUi(self, Dialog):
     self.gridLayout.addWidget(self.siblingStage, r, 1, 1, 1)
 
     label=QtWidgets.QLabel(self.tab_3)
-    label.setText(_("Bury NC until siblings exceed this. (0=disable)"))
+    label.setText(_("Bury NC if sibling ivl is less (0=disable)"))
     self.gridLayout.addWidget(label, r, 2, 1, 1)
 
 
