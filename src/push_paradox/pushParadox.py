@@ -2,7 +2,7 @@
 # Copyright: (C) 2018-2019 Lovac42
 # Support: https://github.com/lovac42/PushParadox
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
-# Version: 0.0.4
+# Version: 0.0.5
 
 
 from aqt import mw
@@ -15,7 +15,7 @@ ANKI21=version.startswith("2.1.")
 def getSibling(card):
     return mw.col.db.list("""select
 id from cards where type == 0 and queue == 0
-and nid = ?""", card.nid)
+and nid = ? and did = ?""", card.nid, card.did)
 
 
 def isParadox(card, siblingIvl):
@@ -28,31 +28,30 @@ siblingIvl, card.nid, card.id)[0] or False
 
 
 def preprocessNewQueue(sched):
-    "For damn med students w/ weird study patterns"
+    "For those w/ weird study patterns"
     arr=[]
     for id in sched._newQueue:
         card=mw.col.getCard(id)
-        if card.odid: return
         if card.queue<0: continue
-
-        conf=sched.col.decks.confForDid(card.did)
-        siblingIvl=conf.get("siblingStage", 0)
-        if isParadox(card,siblingIvl):
-            siblings=getSibling(card)
-            sched.buryCards(siblings)
-        else:
-            arr.append(id)
+        if not card.odid:
+            conf=sched.col.decks.confForDid(card.did)
+            siblingIvl=conf.get("siblingStage", 0)
+            if isParadox(card,siblingIvl):
+                siblings=getSibling(card)
+                sched.buryCards(siblings)
+                continue
+        arr.append(id)
     sched._newQueue=arr
 
 
 def getNewCard(sched, _old):
-    if not sched._newQueue:
-        sched._fillNew()
+    if not sched._newQueue and sched._fillNew():
         preprocessNewQueue(sched)
 
     card=_old(sched)
     if not card or card.odid: return card
 
+    #double checks in case of inserts
     conf=sched.col.decks.confForDid(card.did)
     siblingIvl=conf.get("siblingStage", 0)
     if isParadox(card,siblingIvl):
