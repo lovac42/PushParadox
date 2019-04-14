@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# Copyright: (C) 2018 Lovac42
+# Copyright: (C) 2018-2019 Lovac42
 # Support: https://github.com/lovac42/PushParadox
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
-# Version: 0.0.3
+# Version: 0.0.4
 
 
 from aqt import mw
@@ -12,22 +12,53 @@ from anki import version
 ANKI21=version.startswith("2.1.")
 
 
+def getSibling(card):
+    return mw.col.db.list("""select
+id from cards where type == 0 and queue == 0
+and nid = ?""", card.nid)
+
+
+def isParadox(card, siblingIvl):
+    if not siblingIvl: return False
+    return mw.col.db.first("""select 
+sum(case when type in (1,2,3) and queue != -1 
+and ivl < ? then 1 else 0 end)
+from cards where nid = ? and id != ?""",
+siblingIvl, card.nid, card.id)[0] or False
+
+
+def preprocessNewQueue(sched):
+    "For damn med students w/ weird study patterns"
+    arr=[]
+    for id in sched._newQueue:
+        card=mw.col.getCard(id)
+        if card.odid: return
+        if card.queue<0: continue
+
+        conf=sched.col.decks.confForDid(card.did)
+        siblingIvl=conf.get("siblingStage", 0)
+        if isParadox(card,siblingIvl):
+            siblings=getSibling(card)
+            sched.buryCards(siblings)
+        else:
+            arr.append(id)
+    sched._newQueue=arr
+
+
 def getNewCard(sched, _old):
+    if not sched._newQueue:
+        sched._fillNew()
+        preprocessNewQueue(sched)
+
     card=_old(sched)
     if not card or card.odid: return card
 
     conf=sched.col.decks.confForDid(card.did)
     siblingIvl=conf.get("siblingStage", 0)
-    if siblingIvl:
-        contraction=mw.col.db.first("""select 
-sum(case when type in (1,2,3) and queue != -1 
-and ivl < ? then 1 else 0 end)
-from cards where nid = ? and id != ?""",
-siblingIvl, card.nid, card.id)[0] or 0
-
-        if contraction:
-            sched.buryCards([card.id])
-            return sched._getNewCard() #next card
+    if isParadox(card,siblingIvl):
+        sched.newCount += 1
+        preprocessNewQueue(sched)
+        return sched._getNewCard() #next card
     return card
 
 
@@ -36,6 +67,8 @@ anki.sched.Scheduler._getNewCard = wrap(anki.sched.Scheduler._getNewCard, getNew
 if ANKI21:
     import anki.schedv2
     anki.schedv2.Scheduler._getNewCard = wrap(anki.schedv2.Scheduler._getNewCard, getNewCard, 'around')
+
+
 
 
 ##################################################
@@ -48,6 +81,7 @@ if ANKI21:
 import aqt
 import aqt.deckconf
 from aqt.qt import *
+from anki.lang import _
 
 if ANKI21:
     from PyQt5 import QtCore, QtGui, QtWidgets
@@ -55,21 +89,30 @@ else:
     from PyQt4 import QtCore, QtGui as QtWidgets
 
 
+def valuechange(self):
+    msg='(disabled)'
+    n=self.siblingStage.value()
+    if n:
+        msg="Bury related NC until all siblings exceed IVL of %d"%n
+    self.pushParadoxLbl.setText(_(msg))
+
+
 def dconfsetupUi(self, Dialog):
     r=self.gridLayout.rowCount()
-    label=QtWidgets.QLabel(self.tab_3)
+    label=QtWidgets.QLabel(self.tab)
     label.setText(_("Sibling IVL:"))
     self.gridLayout.addWidget(label, r, 0, 1, 1)
 
-    self.siblingStage=QtWidgets.QSpinBox(self.tab_3)
+    self.siblingStage=QtWidgets.QSpinBox(self.tab)
     self.siblingStage.setMinimum(0)
     self.siblingStage.setMaximum(999)
     self.siblingStage.setSingleStep(5)
+    self.siblingStage.valueChanged.connect(lambda:valuechange(self))
     self.gridLayout.addWidget(self.siblingStage, r, 1, 1, 1)
 
-    label=QtWidgets.QLabel(self.tab_3)
-    label.setText(_("Bury NC if sibling ivl is less (0=disable)"))
-    self.gridLayout.addWidget(label, r, 2, 1, 1)
+    self.pushParadoxLbl=QtWidgets.QLabel(self.tab)
+    self.pushParadoxLbl.setText(_("(disabled)"))
+    self.gridLayout.addWidget(self.pushParadoxLbl, r, 2, 1, 1)
 
 
 def loadConf(self):
