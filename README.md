@@ -8,6 +8,11 @@
 Algorithmically, this contraption ensures the discrete distribution of siblings. It checks the interval of the other active siblings (not suspended) and withhold the new sibling until all review/lapsed siblings have exceeded the predefined maturity level.
 
 
+## Permissions:
+Require Read/Write Access for burying card and siblings.
+Invokes the ```buryCards()``` method from the Anki API.
+
+
 ## Config:
 Sibling intervals must be set in deck options.
 
