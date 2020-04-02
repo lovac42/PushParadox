@@ -3,7 +3,7 @@ set ZIP=C:\PROGRA~1\7-Zip\7z.exe a -tzip -y -r
 set REPO=push_paradox
 set NAME=push_paradox
 set PACKID=1797395052
-set VERSION=0.0.5
+set VERSION=0.1.0
 
 
 echo %VERSION% >%REPO%\VERSION
