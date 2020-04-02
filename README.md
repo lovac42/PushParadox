@@ -17,3 +17,8 @@ Invokes the ```buryCards()``` method from the Anki API.
 Sibling intervals must be set in deck options.
 
 <img src="https://github.com/lovac42/PushParadox/blob/master/screenshots/menuopt.png?raw=true">
+
+
+## Demo:
+
+<img src="https://github.com/lovac42/PushParadox/blob/master/screenshots/example_lineup.png?raw=true">
