@@ -5,3 +5,4 @@
 
 
 from .pushParadox import *
+from .deckconf import *
